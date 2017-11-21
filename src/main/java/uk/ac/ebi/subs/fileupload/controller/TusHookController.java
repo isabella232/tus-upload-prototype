@@ -30,11 +30,11 @@ public class TusHookController {
                                                                          @RequestHeader(value = "Hook-Name") String eventName) throws Exception {
         LOGGER.info(String.format("Name of the POST event: %s", eventName));
         LOGGER.info(tusFileInfo.toString());
+
         tusFileInfo.setEventType(eventName);
 
         tusFileInfoRepository.save(tusFileInfo);
 
         return new ResponseEntity<>(tusFileInfo, HttpStatus.OK);
     }
-
 }

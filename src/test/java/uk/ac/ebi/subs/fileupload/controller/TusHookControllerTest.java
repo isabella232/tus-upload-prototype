@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
@@ -54,6 +55,8 @@ public class TusHookControllerTest {
 
     @Autowired
     private TUSFileInfoRepository tusFileInfoRepository;
+    
+    private String submissionId;
 
     @Before
     public void setup() {
@@ -65,10 +68,12 @@ public class TusHookControllerTest {
         hookValues.put("finish", "post-finish");
         hookValues.put("terminate", "post-terminate");
 
+        submissionId = UUID.randomUUID().toString();
+
         TUSFileInfo = new TUSFileInfo();
         TUSFileInfo.setTusId(TUS_FILEINFO_ID);
         TUSFileInfo.setSize(2683615);
-        TUSFileInfo.setMetadata(TUSFileInfo.buildMetaData("central_park2.jpg"));
+        TUSFileInfo.setMetadata(TUSFileInfo.buildMetaData("central_park2.jpg", submissionId));
     }
 
     @After
@@ -98,15 +103,15 @@ public class TusHookControllerTest {
     public void postCreateEventDispatchedWhenFileUploadStarts() throws Exception {
         TUSFileInfo.setOffsetValue(0);
 
-        String beforeStartEvent = hookValues.get("after-start");
+        String afterStartEvent = hookValues.get("after-start");
 
         mockMvc.perform(post("/tusevent")
                 .content(json(TUSFileInfo))
-                .header("Hook-Name", beforeStartEvent)
+                .header("Hook-Name", afterStartEvent)
                 .contentType(contentType))
                 .andExpect(status().isOk());
 
-        List<TUSFileInfo> fileInfos = tusFileInfoRepository.findByEventType(beforeStartEvent);
+        List<TUSFileInfo> fileInfos = tusFileInfoRepository.findByEventType(afterStartEvent);
         assertThat(fileInfos.size(), is(1));
         assertThat(fileInfos.get(0).getTusId(), is(equalTo(TUS_FILEINFO_ID)));
     }
@@ -116,15 +121,15 @@ public class TusHookControllerTest {
         final long offsetValue = 1048576L;
         TUSFileInfo.setOffsetValue(offsetValue);
 
-        String beforeStartEvent = hookValues.get("progress");
+        String progressEvent = hookValues.get("progress");
 
         mockMvc.perform(post("/tusevent")
                 .content(json(TUSFileInfo))
-                .header("Hook-Name", beforeStartEvent)
+                .header("Hook-Name", progressEvent)
                 .contentType(contentType))
                 .andExpect(status().isOk());
 
-        List<TUSFileInfo> fileInfos = tusFileInfoRepository.findByEventType(beforeStartEvent);
+        List<TUSFileInfo> fileInfos = tusFileInfoRepository.findByEventType(progressEvent);
         assertThat(fileInfos.size(), is(1));
         assertThat(fileInfos.get(0).getOffsetValue(), is(equalTo(offsetValue)));
     }
@@ -134,18 +139,32 @@ public class TusHookControllerTest {
         final long offsetValue = 2683615L;
         TUSFileInfo.setOffsetValue(offsetValue);
 
-        String beforeStartEvent = hookValues.get("finish");
+        String finishEvent = hookValues.get("finish");
 
         mockMvc.perform(post("/tusevent")
                 .content(json(TUSFileInfo))
-                .header("Hook-Name", beforeStartEvent)
+                .header("Hook-Name", finishEvent)
                 .contentType(contentType))
                 .andExpect(status().isOk());
 
-        List<TUSFileInfo> fileInfos = tusFileInfoRepository.findByEventType(beforeStartEvent);
+        List<TUSFileInfo> fileInfos = tusFileInfoRepository.findByEventType(finishEvent);
         assertThat(fileInfos.size(), is(1));
         assertThat(fileInfos.get(0).getOffsetValue(), is(equalTo(offsetValue)));
+    }
 
+    @Test
+    public void canDAddASpecificHeaderWhenUploadingAFile() throws Exception {
+        String finishEvent = hookValues.get("finish");
+
+        mockMvc.perform(post("/tusevent")
+                .content(json(TUSFileInfo))
+                .header("Hook-Name", finishEvent)
+                .contentType(contentType))
+                .andExpect(status().isOk());
+
+        List<TUSFileInfo> fileInfos = tusFileInfoRepository.findByEventType(finishEvent);
+        assertThat(fileInfos.size(), is(1));
+        assertThat(fileInfos.get(0).getMetadata().getSubmissionID(), is(equalTo(submissionId)));
     }
 
     protected String json(Object o) throws IOException {
