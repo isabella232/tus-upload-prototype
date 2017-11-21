@@ -49,7 +49,7 @@ public class TUSFileInfo {
 
     @Data
     @Entity
-    private static class MetaData {
+    public static class MetaData {
 
         @JsonIgnore
         @Id
@@ -59,6 +59,9 @@ public class TUSFileInfo {
         @Column(name = "filename")
         private String filename;
 
+        @Column(name = "submission_id")
+        private String submissionID;
+
         public MetaData() {
         }
 
@@ -66,13 +69,15 @@ public class TUSFileInfo {
         public String toString() {
             return "metadata{" +
                     "filename='" + filename + '\'' +
+                    ", submissionID='" + submissionID + '\'' +
                     '}';
         }
     }
 
-    public static MetaData buildMetaData(String fileName) {
+    public static MetaData buildMetaData(String fileName, String submissionID) {
         MetaData metadata = new MetaData();
         metadata.setFilename(fileName);
+        metadata.setSubmissionID(submissionID);
 
         return metadata;
     }
